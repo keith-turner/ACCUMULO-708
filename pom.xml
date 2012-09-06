@@ -4,6 +4,14 @@
   <artifactId>ACCUMULO-708</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   
+  <repositories>
+    <repository>
+      <id>Cloudera</id>
+      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+    </repository>
+ </repositories>
+ 
+ 
   <dependencies>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -28,5 +36,12 @@
 		<version>4.4</version>
 		<scope>test</scope>
 	</dependency>
+	<!-- This is the version that I am running locally. JUnit tests connect to this for testing -->
+	<dependency>
+	    <groupId>org.apache.hadoop</groupId>
+	    <artifactId>hadoop-core</artifactId>
+	    <version>0.20.2-cdh3u4</version>
+	    <scope>test</scope>
+	</dependency>	
   </dependencies>
 </project>
