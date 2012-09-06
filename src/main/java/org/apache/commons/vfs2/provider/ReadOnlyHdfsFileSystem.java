@@ -11,7 +11,6 @@ import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.DFSClient;
 
 public class ReadOnlyHdfsFileSystem extends AbstractFileSystem {
 
@@ -43,9 +42,9 @@ public class ReadOnlyHdfsFileSystem extends AbstractFileSystem {
   }
 
   @Override
+  @SuppressWarnings("resource")
   public FileObject resolveFile(FileName name) throws FileSystemException {
     String hdfsUri = name.getRootURI();
-    System.out.println("Attempting to connect to fs at: " + hdfsUri);
     Configuration conf = new Configuration();
     conf.set(org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY, hdfsUri);
     org.apache.hadoop.fs.FileSystem fs;
@@ -54,7 +53,7 @@ public class ReadOnlyHdfsFileSystem extends AbstractFileSystem {
       Path filePath = new Path(name.getPath());
       return new HdfsFileObject((AbstractFileName) name, this, fs, filePath);
     } catch (IOException e) {
-      throw new RuntimeException("Error creating filesystem", e);
+      throw new RuntimeException("Error connecting to filesystem", e);
     }
     
     
