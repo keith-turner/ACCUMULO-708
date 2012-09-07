@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
+import org.apache.commons.vfs2.util.RandomAccessMode;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -187,7 +189,41 @@ public class ReadOnlyHdfsFileProviderTest {
     Assert.assertTrue(attributes.containsKey(HdfsFileObject.OWNER));
     Assert.assertTrue(attributes.containsKey(HdfsFileObject.PERMISSIONS));
   }
+  
+  @Test(expected=FileSystemException.class)
+  public void testRandomAccessContent() throws Exception {
+    FileObject fo = manager.resolveFile(TEST_DIR1);
+    Assert.assertNotNull(fo);
+    Assert.assertFalse(fo.exists());
 
+    //Create the test file
+    FileObject file = createTestFile(hdfs);
+    file.getContent().getRandomAccessContent(RandomAccessMode.READWRITE).close();
+  }
+
+  @Test
+  public void testRandomAccessContent2() throws Exception {
+    FileObject fo = manager.resolveFile(TEST_DIR1);
+    Assert.assertNotNull(fo);
+    Assert.assertFalse(fo.exists());
+
+    //Create the test file
+    FileObject file = createTestFile(hdfs);
+    file.getContent().getRandomAccessContent(RandomAccessMode.READ).close();
+  }
+
+  @Test
+  public void testEquals() throws Exception {
+    FileObject fo = manager.resolveFile(TEST_DIR1);
+    Assert.assertNotNull(fo);
+    Assert.assertFalse(fo.exists());
+
+    //Create the test file
+    FileObject file = createTestFile(hdfs);
+    //Get a handle to the same file
+    FileObject file2 = manager.resolveFile(TEST_FILE1);
+    Assert.assertEquals(file, file2);
+  }
   
   @After
   public void destroy() throws Exception {

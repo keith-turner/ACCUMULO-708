@@ -163,4 +163,26 @@ public class HdfsFileObject extends AbstractFileObject {
     throw new UnsupportedOperationException();
   }
   
+  @Override
+  public boolean equals(Object o) {
+    if (null == o) return false;
+    if (o == this) return true;
+    if (o instanceof HdfsFileObject) {
+      HdfsFileObject other = (HdfsFileObject) o;
+      try {
+        if (other.getURL().equals(this.getURL()))
+          return true;
+      } catch (FileSystemException e) {
+        //TODO: log error
+        return false;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.path.getName().toString().hashCode();
+  }
+  
 }
