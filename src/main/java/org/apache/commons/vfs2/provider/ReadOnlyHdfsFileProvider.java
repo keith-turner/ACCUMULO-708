@@ -23,6 +23,7 @@ public class ReadOnlyHdfsFileProvider extends AbstractOriginatingFileProvider {
       Capability.ATTRIBUTES,
       Capability.RANDOM_ACCESS_READ,
       Capability.DIRECTORY_READ_CONTENT,
+      Capability.LIST_CHILDREN
   }));
 
   public ReadOnlyHdfsFileProvider() {

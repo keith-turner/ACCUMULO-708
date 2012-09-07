@@ -1,11 +1,9 @@
 package org.apache.commons.vfs2.provider;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.vfs2.FileContent;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;
@@ -17,13 +15,13 @@ import org.apache.hadoop.fs.Path;
 
 public class HdfsFileObject extends AbstractFileObject {
 
-  private static final String LAST_ACCESS_TIME = "LAST_ACCESS_TIME";
-  private static final String BLOCK_SIZE = "BLOCK_SIZE";
-  private static final String GROUP = "GROUP";
-  private static final String OWNER = "OWNER";
-  private static final String PERMISSIONS = "PERMISSIONS";
-  private static final String LENGTH = "LENGTH";
-  private static final String MODIFICATION_TIME = "MODIFICATION_TIME";
+  public static final String LAST_ACCESS_TIME = "LAST_ACCESS_TIME";
+  public static final String BLOCK_SIZE = "BLOCK_SIZE";
+  public static final String GROUP = "GROUP";
+  public static final String OWNER = "OWNER";
+  public static final String PERMISSIONS = "PERMISSIONS";
+  public static final String LENGTH = "LENGTH";
+  public static final String MODIFICATION_TIME = "MODIFICATION_TIME";
   
   private ReadOnlyHdfsFileSystem fs = null;
   private FileSystem hdfs = null;
@@ -32,6 +30,7 @@ public class HdfsFileObject extends AbstractFileObject {
   
   protected HdfsFileObject(AbstractFileName name, ReadOnlyHdfsFileSystem fs, FileSystem hdfs, Path p) {
     super(name,fs);
+    this.fs = fs;
     this.hdfs = hdfs;
     this.path = p;
   }
@@ -84,16 +83,6 @@ public class HdfsFileObject extends AbstractFileObject {
   @Override
   protected InputStream doGetInputStream() throws Exception {
     return this.hdfs.open(this.path);
-  }
-
-  @Override
-  public void close() throws FileSystemException {
-    super.close();
-    try {
-      this.hdfs.close();
-    } catch (IOException e) {
-      throw new FileSystemException("Error closing FileSystem", e);
-    }
   }
 
   @Override
@@ -172,15 +161,6 @@ public class HdfsFileObject extends AbstractFileObject {
   @Override
   protected boolean doIsSameFile(FileObject destFile) throws FileSystemException {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  protected FileContent doCreateFileContent() throws FileSystemException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  protected void endOutput() throws Exception {
   }
   
 }

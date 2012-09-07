@@ -12,15 +12,15 @@ public class AccumuloVFSClassLoader {
   
   
   
-  public static ClassLoader getClassLoader() throws Exception {
-    //Get current user
-    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-    String username = ugi.getUserName();
-
-    if (classLoaderCache.containsKey(username))
-      return classLoaderCache.get(username);
-    
-    
-  }
+//  public static ClassLoader getClassLoader() throws Exception {
+//    //Get current user
+//    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+//    String username = ugi.getUserName();
+//
+//    if (classLoaderCache.containsKey(username))
+//      return classLoaderCache.get(username);
+//    
+//    
+//  }
   
 }
