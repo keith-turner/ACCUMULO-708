@@ -9,6 +9,7 @@ import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
 public class HdfsReadOnlyFileContentInfoFactory implements FileContentInfoFactory {
 
   public FileContentInfo create(FileContent fileContent) throws FileSystemException {
+    //TODO: Need to figure out a way to get this information from the file.
     String content = "text/plain";
     String encoding = "UTF-8";
     return new DefaultFileContentInfo(content, encoding);

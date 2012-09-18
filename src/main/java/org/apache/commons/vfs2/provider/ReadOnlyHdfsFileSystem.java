@@ -43,7 +43,6 @@ public class ReadOnlyHdfsFileSystem extends AbstractFileSystem {
 
   @Override
   public FileObject resolveFile(FileName name) throws FileSystemException {
-    
     if (null == this.fs) {
       String hdfsUri = name.getRootURI();
       Configuration conf = new Configuration();
