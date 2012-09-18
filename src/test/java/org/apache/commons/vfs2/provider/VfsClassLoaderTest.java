@@ -3,9 +3,12 @@ package org.apache.commons.vfs2.provider;
 import java.net.URL;
 
 import org.apache.commons.vfs2.CacheStrategy;
+import org.apache.commons.vfs2.FileChangeEvent;
+import org.apache.commons.vfs2.FileListener;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.cache.DefaultFilesCache;
 import org.apache.commons.vfs2.cache.SoftRefFilesCache;
+import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.apache.commons.vfs2.impl.DefaultFileReplicator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
@@ -73,6 +76,42 @@ public class VfsClassLoaderTest {
     Assert.assertEquals("Hello World!", o.toString());
   }
   
+  @Test
+  public void testFileMonitor() throws Exception {
+    MyFileMonitor listener = new MyFileMonitor();
+    DefaultFileMonitor monitor = new DefaultFileMonitor(listener);
+    monitor.setRecursive(true);
+    FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
+    monitor.addFile(testDir);
+    monitor.start();
+    
+    //Copy jar file to a new file name
+    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
+    Path src = new Path(jarPath.toURI().toString());
+    Path dst = new Path(TEST_DIR, "HelloWorld2.jar");
+    this.hdfs.copyFromLocalFile(src, dst);
+
+    Thread.sleep(1500);
+    Assert.assertTrue(listener.isFileCreated());
+
+    //Update the jar
+    jarPath = this.getClass().getResource("/HelloWorld.jar");
+    src = new Path(jarPath.toURI().toString());
+    dst = new Path(TEST_DIR, "HelloWorld2.jar");
+    this.hdfs.copyFromLocalFile(src, dst);
+
+    Thread.sleep(1500);
+    Assert.assertTrue(listener.isFileChanged());
+    
+    this.hdfs.delete(dst, false);
+    Thread.sleep(1500);
+    Assert.assertTrue(listener.isFileDeleted());
+    
+    monitor.stop();
+    
+  }
+  
+  
   @After
   public void destroy() throws Exception {
     this.hdfs.delete(TEST_DIR, true);
@@ -80,4 +119,40 @@ public class VfsClassLoaderTest {
     this.vfs.close();
   }
   
+  
+  public static class MyFileMonitor implements FileListener {
+
+    private boolean fileChanged = false;
+    private boolean fileDeleted = false;
+    private boolean fileCreated = false;
+    
+    public void fileCreated(FileChangeEvent event) throws Exception {
+      System.out.println(event.getFile() + " created");
+      this.fileCreated = true;
+    }
+
+    public void fileDeleted(FileChangeEvent event) throws Exception {
+      System.out.println(event.getFile() + " deleted");
+      this.fileDeleted = true;
+    }
+
+    public void fileChanged(FileChangeEvent event) throws Exception {
+      System.out.println(event.getFile() + " changed");
+      this.fileChanged = true;
+    }
+
+    public boolean isFileChanged() {
+      return fileChanged;
+    }
+
+    public boolean isFileDeleted() {
+      return fileDeleted;
+    }
+
+    public boolean isFileCreated() {
+      return fileCreated;
+    }
+    
+    
+  }
 }
