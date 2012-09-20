@@ -1,18 +1,15 @@
-package org.apache.commons.vfs2.provider;
+package org.apache.accumulo.start.classloader;
 
 import java.net.URL;
 
 import org.apache.commons.vfs2.CacheStrategy;
-import org.apache.commons.vfs2.FileChangeEvent;
-import org.apache.commons.vfs2.FileListener;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.cache.DefaultFilesCache;
 import org.apache.commons.vfs2.cache.SoftRefFilesCache;
-import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.apache.commons.vfs2.impl.DefaultFileReplicator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
-import org.apache.commons.vfs2.impl.VFSClassLoader;
+import org.apache.commons.vfs2.provider.ReadOnlyHdfsFileProvider;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -21,16 +18,16 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class VfsClassLoaderTest {
-  
+public class AccumuloReloadingVFSClassLoaderTest {
+ 
   private static final String HDFS_URI = "hdfs://localhost:8020";
   private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
 
   private Configuration conf = null;
   private FileSystem hdfs = null;
   private DefaultFileSystemManager vfs = null;
-  private VFSClassLoader cl = null;
-  
+  private AccumuloReloadingVFSClassLoader cl = null;
+ 
   @Before
   public void setup() throws Exception {
     //Setup HDFS
@@ -61,99 +58,58 @@ public class VfsClassLoaderTest {
     vfs.setReplicator(new DefaultFileReplicator());
     vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
     vfs.init();
-    
+  }
+  
+  @Test
+  public void testConstructor() throws Exception {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
-//for (FileObject f : dirContents)
-//  System.out.println(f.getURL().toString());
-    //Point the VFSClassLoader to all of the objects in TEST_DIR
-    this.cl = new VFSClassLoader(dirContents, vfs);
-  }
-
-  @Test
-  public void testGetClass() throws Exception {
-    Class<?> helloWorldClass = this.cl.loadClass("test.HelloWorld");
-    Object o = helloWorldClass.newInstance();
-    Assert.assertEquals("Hello World!", o.toString());
+    cl = new AccumuloReloadingVFSClassLoader(dirContents, vfs, ClassLoader.getSystemClassLoader());
+    FileObject[] files = cl.getFiles();
+    Assert.assertArrayEquals(dirContents, files);
   }
   
   @Test
-  public void testFileMonitor() throws Exception {
-    MyFileMonitor listener = new MyFileMonitor();
-    DefaultFileMonitor monitor = new DefaultFileMonitor(listener);
-    monitor.setRecursive(true);
+  public void testReloading() throws Exception {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
-    monitor.addFile(testDir);
-    monitor.start();
+    FileObject[] dirContents = testDir.getChildren();
+    cl = new AccumuloReloadingVFSClassLoader(dirContents, vfs, ClassLoader.getSystemClassLoader());
+    FileObject[] files = cl.getFiles();
+    Assert.assertArrayEquals(dirContents, files);
+
+    Class<?> clazz1 = cl.loadClass("test.HelloWorld");
+    Object o1 = clazz1.newInstance();
+    Assert.assertEquals("Hello World!", o1.toString());
+
+    //Check that the class is the same before the update
+    Class<?> clazz1_5 = cl.loadClass("test.HelloWorld");
+    Assert.assertEquals(clazz1, clazz1_5);
     
-    //Copy jar file to a new file name
+    //Update the class
     URL jarPath = this.getClass().getResource("/HelloWorld.jar");
     Path src = new Path(jarPath.toURI().toString());
-    Path dst = new Path(TEST_DIR, "HelloWorld2.jar");
+    Path dst = new Path(TEST_DIR, "HelloWorld.jar");
     this.hdfs.copyFromLocalFile(src, dst);
 
+    //Wait for the monitor to notice
     Thread.sleep(4000);
-    Assert.assertTrue(listener.isFileCreated());
-
-    //Update the jar
-    jarPath = this.getClass().getResource("/HelloWorld.jar");
-    src = new Path(jarPath.toURI().toString());
-    dst = new Path(TEST_DIR, "HelloWorld2.jar");
-    this.hdfs.copyFromLocalFile(src, dst);
-
-    Thread.sleep(4000);
-    Assert.assertTrue(listener.isFileChanged());
     
-    this.hdfs.delete(dst, false);
-    Thread.sleep(4000);
-    Assert.assertTrue(listener.isFileDeleted());
+    Class<?> clazz2 = cl.loadClass("test.HelloWorld");
+    Object o2 = clazz2.newInstance();
+    Assert.assertEquals("Hello World!", o2.toString());
     
-    monitor.stop();
+    //This is false because they are loaded by a different classloader
+    Assert.assertFalse(clazz1.equals(clazz2));
+    Assert.assertFalse(o1.equals(o2));
     
   }
-  
   
   @After
   public void destroy() throws Exception {
+    cl.close();
     this.hdfs.delete(TEST_DIR, true);
     this.hdfs.close();
     this.vfs.close();
   }
-  
-  
-  public static class MyFileMonitor implements FileListener {
 
-    private boolean fileChanged = false;
-    private boolean fileDeleted = false;
-    private boolean fileCreated = false;
-    
-    public void fileCreated(FileChangeEvent event) throws Exception {
-      System.out.println(event.getFile() + " created");
-      this.fileCreated = true;
-    }
-
-    public void fileDeleted(FileChangeEvent event) throws Exception {
-      System.out.println(event.getFile() + " deleted");
-      this.fileDeleted = true;
-    }
-
-    public void fileChanged(FileChangeEvent event) throws Exception {
-      System.out.println(event.getFile() + " changed");
-      this.fileChanged = true;
-    }
-
-    public boolean isFileChanged() {
-      return fileChanged;
-    }
-
-    public boolean isFileDeleted() {
-      return fileDeleted;
-    }
-
-    public boolean isFileCreated() {
-      return fileCreated;
-    }
-    
-    
-  }
 }

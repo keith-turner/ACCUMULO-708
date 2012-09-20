@@ -38,6 +38,24 @@
 		<version>4.4</version>
 		<scope>test</scope>
 	</dependency>
+	<dependency>
+      <groupId>org.easymock</groupId>
+      <artifactId>easymock</artifactId>
+      <version>3.1</version>
+      <scope>test</scope>
+    </dependency>	
+   <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>1.4.12</version>
+      <scope>test</scope>
+   </dependency>
+   <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-easymock</artifactId>
+      <version>1.4.12</version>
+      <scope>test</scope>
+   </dependency>  	
 	<!-- This is the version that I am running locally. JUnit tests connect to this for testing -->
 	<dependency>
 	    <groupId>org.apache.hadoop</groupId>
