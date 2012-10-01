@@ -13,9 +13,15 @@ import org.apache.commons.vfs2.provider.ReadOnlyHdfsFileProvider;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class AccumuloReloadingVFSClassLoaderTest {
@@ -23,17 +29,38 @@ public class AccumuloReloadingVFSClassLoaderTest {
   private static final String HDFS_URI = "hdfs://localhost:8020";
   private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
 
-  private Configuration conf = null;
   private FileSystem hdfs = null;
   private DefaultFileSystemManager vfs = null;
   private AccumuloReloadingVFSClassLoader cl = null;
  
-  @Before
-  public void setup() throws Exception {
+  private static MiniDFSCluster cluster = null;
+  private static Configuration conf = null;
+  
+  @BeforeClass
+  public static void start() throws Exception {
     //Setup HDFS
     conf = new Configuration();
     conf.set(FileSystem.FS_DEFAULT_NAME_KEY, HDFS_URI);
-    this.hdfs = FileSystem.get(conf);
+    conf.set("hadoop.security.token.service.use_ip", "true");
+    conf.set("dfs.datanode.data.dir.perm", "775");
+    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); //100K blocksize
+    
+    cluster = new MiniDFSCluster(8020, conf, 1, true, true, true, null, null, null, null);
+    cluster.waitActive();
+    
+  }
+  
+  @AfterClass
+  public static void stop() throws Exception {
+    if (null != cluster)
+      cluster.shutdown();
+  }
+
+  @Before
+  public void setup() throws Exception {
+    Logger.getRootLogger().setLevel(Level.ERROR);
+
+    this.hdfs = cluster.getFileSystem();
     this.hdfs.mkdirs(TEST_DIR);
     
     //Copy jar file to TEST_DIR
@@ -105,7 +132,7 @@ public class AccumuloReloadingVFSClassLoaderTest {
   }
   
   @After
-  public void destroy() throws Exception {
+  public void tearDown() throws Exception {
     cl.close();
     this.hdfs.delete(TEST_DIR, true);
     this.hdfs.close();

@@ -11,9 +11,15 @@ import org.apache.commons.vfs2.util.RandomAccessMode;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ReadOnlyHdfsFileProviderTest {
@@ -26,22 +32,39 @@ public class ReadOnlyHdfsFileProviderTest {
   
   private DefaultFileSystemManager manager = null;
   private FileSystem hdfs = null;
+
+  private static MiniDFSCluster cluster = null;
+  private static Configuration conf = null;
+  @BeforeClass
+  public static void start() throws Exception {
+    Logger.getRootLogger().setLevel(Level.ERROR);
+    
+    //Setup HDFS
+    conf = new Configuration();
+    conf.set(FileSystem.FS_DEFAULT_NAME_KEY, HDFS_URI);
+    conf.set("hadoop.security.token.service.use_ip", "true");
+    conf.set("dfs.datanode.data.dir.perm", "775");
+    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); //100K blocksize
+    
+    cluster = new MiniDFSCluster(8020, conf, 1, true, true, true, null, null, null, null);
+    cluster.waitActive();
+    
+  }
   
+  @AfterClass
+  public static void stop() throws Exception {
+    if (null != cluster)
+      cluster.shutdown();
+  }
+
   @Before
   public void setup() throws Exception {
     manager = new DefaultFileSystemManager();
     manager.addProvider("hdfs", new ReadOnlyHdfsFileProvider());
     manager.init();
-    this.hdfs = getHDFS();
+    this.hdfs = cluster.getFileSystem();
   }
-  
-  private FileSystem getHDFS() throws IOException {
-    Configuration conf = new Configuration();
-    conf.set(org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY, HDFS_URI);
-    FileSystem fs = FileSystem.get(conf);
-    return fs;
-  }
-  
+    
   private FileObject createTestFile(FileSystem hdfs) throws IOException {
     //Create the directory
     hdfs.mkdirs(DIR1_PATH);
@@ -226,7 +249,7 @@ public class ReadOnlyHdfsFileProviderTest {
   }
   
   @After
-  public void destroy() throws Exception {
+  public void tearDown() throws Exception {
     if (null != hdfs) {
       hdfs.delete(DIR1_PATH, true);
       hdfs.close();  
