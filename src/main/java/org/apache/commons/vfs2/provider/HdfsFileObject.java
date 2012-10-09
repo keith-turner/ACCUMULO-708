@@ -1,5 +1,6 @@
 package org.apache.commons.vfs2.provider;
 
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,10 +53,12 @@ public class HdfsFileObject extends AbstractFileObject {
   @Override
   public boolean exists() throws FileSystemException {
     try {
-      doGetType();
-      return true;
-    } catch (Exception e) {
+      doAttach();
+      return this.stat != null;
+    } catch (FileNotFoundException fne) {
       return false;
+    } catch (Exception e) {
+      throw new FileSystemException("Unable to check existance ", e);
     } 
   }
 

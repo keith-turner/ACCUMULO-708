@@ -43,18 +43,22 @@ public class ReadOnlyHdfsFileSystem extends AbstractFileSystem {
 
   @Override
   public FileObject resolveFile(FileName name) throws FileSystemException {
-    if (null == this.fs) {
-      String hdfsUri = name.getRootURI();
-      Configuration conf = new Configuration();
-      conf.set(org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY, hdfsUri);
-      this.fs = null;
-      try {
-        fs = org.apache.hadoop.fs.FileSystem.get(conf);
-        
-      } catch (IOException e) {
-        throw new RuntimeException("Error connecting to filesystem", e);
+    
+    synchronized (this) {
+      if (null == this.fs) {
+        String hdfsUri = name.getRootURI();
+        Configuration conf = new Configuration(false);
+        conf.set(org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY, hdfsUri);
+        this.fs = null;
+        try {
+          fs = org.apache.hadoop.fs.FileSystem.get(conf);
+          
+        } catch (IOException e) {
+          throw new FileSystemException("Error connecting to filesystem " + hdfsUri, e);
+        }
       }
     }
+
     Path filePath = new Path(name.getPath());
     return new HdfsFileObject((AbstractFileName) name, this, fs, filePath);
     

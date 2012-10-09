@@ -210,6 +210,8 @@ public class AccumuloVFSClassLoader {
             vfs.addProvider("ram", new org.apache.commons.vfs2.provider.ram.RamFileProvider());
             vfs.addProvider("file", new org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider());
             vfs.addProvider("jar", new org.apache.commons.vfs2.provider.jar.JarFileProvider());
+            vfs.addProvider("http", new org.apache.commons.vfs2.provider.http.HttpFileProvider());
+            vfs.addProvider("https", new org.apache.commons.vfs2.provider.https.HttpsFileProvider());
             vfs.addProvider("hdfs", new ReadOnlyHdfsFileProvider());
             vfs.addExtensionMap("jar", "jar");
             vfs.setFileContentInfoFactory(new FileContentInfoFilenameFactory());
